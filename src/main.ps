@@ -4,6 +4,8 @@
 //@version=6
 strategy("ZCore Trading Strategy", overlay=true, initial_capital=1000)
 
+import nichu211/OKXSignalLogic/1 as okx     
+
 // Input Parameters
 initialCapital = input.float(1000, title="Initial Capital")
 lookbackPeriod = input.int(20, title="Lookback Period", minval=1, tooltip="Number of bars used for calculations")
@@ -11,6 +13,10 @@ indicatorLength = input.int(14, title="Indicator Length", minval=1, tooltip="Len
 zScoreThreshold = input.float(1.5, title="Z-Score Threshold")
 stopLossPercent = input.float(2, title="Stop Loss (%)")
 takeProfitPercent = input.float(5, title="Take Profit (%)")
+
+// Signal Settings
+signalToken = input.string("YOUR_DEFAULT_TOKEN", title="Signal Token")
+positionSize = input.float(100.0, title="Position Size (%)", minval=0.1, maxval=100)
 
 // Indicator Settings
 useMA = input.bool(true, title="Use Moving Average")
@@ -71,11 +77,13 @@ if useMACD
 // Execute Trades
 if buySignal
     strategy.entry("Buy", strategy.long)
-    strategy.exit("Take Profit/Stop Loss", "Buy", limit=close * (1 + takeProfitPercent / 100), stop=close * (1 - stopLossPercent / 100))
+    alertMessage = okx.generateManualMessage(action="ENTER_LONG", signalToken=signalToken, amount=positionSize)
+    strategy.exit("Take Profit/Stop Loss", "Buy", limit=close * (1 + takeProfitPercent / 100), stop=close * (1 - stopLossPercent / 100), alert_message=alertMessage)
 
 if sellSignal
     strategy.entry("Sell", strategy.short)
-    strategy.exit("Take Profit/Stop Loss", "Sell", limit=close * (1 - takeProfitPercent / 100), stop=close * (1 + stopLossPercent / 100))
+    alertMessage = okx.generateManualMessage(action="ENTER_SHORT", signalToken=signalToken, amount=positionSize)
+    strategy.exit("Take Profit/Stop Loss", "Sell", limit=close * (1 - takeProfitPercent / 100), stop=close * (1 + stopLossPercent / 100), alert_message=alertMessage)
 
 // Plotting
 plot(zScore, title="Z-Score", color=color.blue)

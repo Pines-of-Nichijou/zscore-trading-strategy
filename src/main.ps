@@ -1,0 +1,85 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © nichu211
+
+//@version=6
+strategy("ZCore Trading Strategy", overlay=true, initial_capital=1000)
+
+// Input Parameters
+initialCapital = input.float(1000, title="Initial Capital")
+lookbackPeriod = input.int(20, title="Lookback Period", minval=1, tooltip="Number of bars used for calculations")
+indicatorLength = input.int(14, title="Indicator Length", minval=1, tooltip="Length for MA, EMA, and RSI calculations")
+zScoreThreshold = input.float(1.5, title="Z-Score Threshold")
+stopLossPercent = input.float(2, title="Stop Loss (%)")
+takeProfitPercent = input.float(5, title="Take Profit (%)")
+
+// Indicator Settings
+useMA = input.bool(true, title="Use Moving Average")
+useEMA = input.bool(true, title="Use Exponential Moving Average")
+useRSI = input.bool(true, title="Use RSI")
+useMACD = input.bool(true, title="Use MACD")
+
+// RSI Settings
+rsiOverbought = input.int(70, title="RSI Overbought Level", minval=0, maxval=100)
+rsiOversold = input.int(30, title="RSI Oversold Level", minval=0, maxval=100)
+
+// MACD Settings
+macdFastLength = input.int(12, title="MACD Fast Length", minval=1)
+macdSlowLength = input.int(26, title="MACD Slow Length", minval=1)
+macdSignalLength = input.int(9, title="MACD Signal Length", minval=1)
+
+// Calculate Z-Score
+base_lookback = lookbackPeriod
+
+lookback = switch
+    timeframe.isseconds => base_lookback * math.round(240 / timeframe.multiplier)
+    timeframe.isminutes => base_lookback * math.round(240 / timeframe.multiplier)
+    timeframe.isdaily => base_lookback
+    timeframe.isweekly => math.round(base_lookback / 7)
+    timeframe.ismonthly => math.round(base_lookback / 30)
+    => base_lookback  // default case
+
+mean = ta.sma(close, lookback)
+stdDev = ta.stdev(close, lookback)
+zScore = (close - mean) / stdDev
+
+// Calculate Indicators
+ma = ta.sma(close, indicatorLength)
+ema = ta.ema(close, indicatorLength)
+rsi = ta.rsi(close, indicatorLength)
+[macdLine, signalLine, _] = ta.macd(close, macdFastLength, macdSlowLength, macdSignalLength)
+
+// Trading Logic
+buySignal = zScore > zScoreThreshold
+sellSignal = zScore < -zScoreThreshold
+
+if useMA
+    buySignal := buySignal and close > ma
+    sellSignal := sellSignal and close < ma
+
+if useEMA
+    buySignal := buySignal and close > ema
+    sellSignal := sellSignal and close < ema
+
+if useRSI
+    buySignal := buySignal and rsi < rsiOversold
+    sellSignal := sellSignal and rsi > rsiOverbought
+
+if useMACD
+    buySignal := buySignal and macdLine > signalLine
+    sellSignal := sellSignal and macdLine < signalLine
+
+// Execute Trades
+if buySignal
+    strategy.entry("Buy", strategy.long)
+    strategy.exit("Take Profit/Stop Loss", "Buy", limit=close * (1 + takeProfitPercent / 100), stop=close * (1 - stopLossPercent / 100))
+
+if sellSignal
+    strategy.entry("Sell", strategy.short)
+    strategy.exit("Take Profit/Stop Loss", "Sell", limit=close * (1 - takeProfitPercent / 100), stop=close * (1 + stopLossPercent / 100))
+
+// Plotting
+plot(zScore, title="Z-Score", color=color.blue)
+hline(zScoreThreshold, "Z-Score Threshold", color=color.red)
+hline(-zScoreThreshold, "Negative Z-Score Threshold", color=color.green)
+plot(ma, title="Moving Average", color=color.orange)
+plot(ema, title="Exponential Moving Average", color=color.purple)

@@ -2,36 +2,44 @@
 // © nichu211
 
 //@version=6
-strategy("ZCore Trading Strategy", overlay=true, initial_capital=1000)
+strategy("ZCore Trading Strategy", overlay=false, initial_capital=1000, default_qty_value = 10, default_qty_type = strategy.cash, fill_orders_on_standard_ohlc = true)
 
 import nichu211/OKXSignalLogic/1 as okx     
 
-// Input Parameters
-initialCapital = input.float(1000, title="Initial Capital")
-lookbackPeriod = input.int(20, title="Lookback Period", minval=1, tooltip="Number of bars used for calculations")
-indicatorLength = input.int(14, title="Indicator Length", minval=1, tooltip="Length for MA, EMA, and RSI calculations")
-zScoreThreshold = input.float(1.5, title="Z-Score Threshold")
-stopLossPercent = input.float(2, title="Stop Loss (%)")
-takeProfitPercent = input.float(5, title="Take Profit (%)")
+// Signal Settings Group
+var signalGroup = "Signal Settings"
+signalToken = input.string("YOUR_DEFAULT_TOKEN", title="Signal Token", group=signalGroup)
 
-// Signal Settings
-signalToken = input.string("YOUR_DEFAULT_TOKEN", title="Signal Token")
-positionSize = input.float(100.0, title="Position Size (%)", minval=0.1, maxval=100)
+// Capital & Risk Management Group
+var capitalGroup = "Capital & Risk Management"
+initialCapital = input.float(1000, title="Initial Capital", group=capitalGroup)
+positionSize = input.float(100.0, title="Position Size (%)", minval=0.1, maxval=100, group=capitalGroup)
+stopLossPercent = input.float(2, title="Stop Loss (%)", group=capitalGroup)
+takeProfitPercent = input.float(5, title="Take Profit (%)", group=capitalGroup)
 
-// Indicator Settings
-useMA = input.bool(true, title="Use Moving Average")
-useEMA = input.bool(true, title="Use Exponential Moving Average")
-useRSI = input.bool(true, title="Use RSI")
-useMACD = input.bool(true, title="Use MACD")
+// Indicator Selection Group
+var indicatorGroup = "Indicator Selection"
+useMA = input.bool(true, title="Use Moving Average", group=indicatorGroup)
+useEMA = input.bool(true, title="Use Exponential Moving Average", group=indicatorGroup)
+useRSI = input.bool(false, title="Use RSI", group=indicatorGroup)
+useMACD = input.bool(true, title="Use MACD", group=indicatorGroup)
 
-// RSI Settings
-rsiOverbought = input.int(70, title="RSI Overbought Level", minval=0, maxval=100)
-rsiOversold = input.int(30, title="RSI Oversold Level", minval=0, maxval=100)
+// Strategy Parameters Group
+var strategyGroup = "Strategy Parameters"
+lookbackPeriod = input.int(20, title="Lookback Period", minval=1, tooltip="Number of bars used for calculations", group=strategyGroup)
+indicatorLength = input.int(14, title="Indicator Length", minval=1, tooltip="Length for MA, EMA, and RSI calculations", group=strategyGroup)
+zScoreThreshold = input.float(1.5, title="Z-Score Threshold", group=strategyGroup)
 
-// MACD Settings
-macdFastLength = input.int(12, title="MACD Fast Length", minval=1)
-macdSlowLength = input.int(26, title="MACD Slow Length", minval=1)
-macdSignalLength = input.int(9, title="MACD Signal Length", minval=1)
+// RSI Settings Group
+var rsiGroup = "RSI Settings"
+rsiOverbought = input.int(70, title="RSI Overbought Level", minval=0, maxval=100, group=rsiGroup)
+rsiOversold = input.int(30, title="RSI Oversold Level", minval=0, maxval=100, group=rsiGroup)
+
+// MACD Settings Group
+var macdGroup = "MACD Settings"
+macdFastLength = input.int(12, title="MACD Fast Length", minval=1, group=macdGroup)
+macdSlowLength = input.int(26, title="MACD Slow Length", minval=1, group=macdGroup)
+macdSignalLength = input.int(9, title="MACD Signal Length", minval=1, group=macdGroup)
 
 // Calculate Z-Score
 base_lookback = lookbackPeriod
@@ -76,14 +84,18 @@ if useMACD
 
 // Execute Trades
 if buySignal
-    strategy.entry("Buy", strategy.long)
-    alertMessage = okx.generateManualMessage(action="ENTER_LONG", signalToken=signalToken, amount=positionSize)
-    strategy.exit("Take Profit/Stop Loss", "Buy", limit=close * (1 + takeProfitPercent / 100), stop=close * (1 - stopLossPercent / 100), alert_message=alertMessage)
+    orderId = "Buy " + syminfo.ticker
+    entryMsg = okx.generateManualMessage(action="ENTER_LONG", signalToken=signalToken, amount=positionSize, orderType="market")
+    exitMsg = okx.generateManualMessage(action="EXIT", signalToken=signalToken, amount=positionSize, orderType="limit", priceOffset=takeProfitPercent)
+    strategy.entry(orderId, strategy.long, alert_message=entryMsg)
+    strategy.exit("Take Profit/Stop Loss", orderId, limit=close * (1 + takeProfitPercent / 100), stop=close * (1 - stopLossPercent / 100), alert_message=exitMsg)
 
 if sellSignal
-    strategy.entry("Sell", strategy.short)
-    alertMessage = okx.generateManualMessage(action="ENTER_SHORT", signalToken=signalToken, amount=positionSize)
-    strategy.exit("Take Profit/Stop Loss", "Sell", limit=close * (1 - takeProfitPercent / 100), stop=close * (1 + stopLossPercent / 100), alert_message=alertMessage)
+    orderId = "Sell " + syminfo.ticker
+    entryMsg = okx.generateManualMessage(action="ENTER_SHORT", signalToken=signalToken, amount=positionSize)
+    exitMsg = okx.generateManualMessage(action="EXIT", signalToken=signalToken, amount=positionSize, orderType="limit", priceOffset=-takeProfitPercent)
+    strategy.entry(orderId, strategy.short, alert_message=entryMsg)
+    strategy.exit("Take Profit/Stop Loss", orderId, limit=close * (1 - takeProfitPercent / 100), stop=close * (1 + stopLossPercent / 100), alert_message=exitMsg)
 
 // Plotting
 plot(zScore, title="Z-Score", color=color.blue)

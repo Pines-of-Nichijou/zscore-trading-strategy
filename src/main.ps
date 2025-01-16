@@ -2,9 +2,10 @@
 // © nichu211
 
 //@version=6
-strategy("ZCore Trading Strategy", overlay=false, initial_capital=1000, default_qty_value = 10, default_qty_type = strategy.cash, fill_orders_on_standard_ohlc = true)
+strategy("ZSCore Trading Strategy", overlay=false, initial_capital=1000, default_qty_value = 10, default_qty_type = strategy.cash, fill_orders_on_standard_ohlc = true)
 
-import nichu211/OKXSignalLogic/1 as okx     
+import nichu211/ZScore/1 as ZScore
+import nichu211/OKXSignalLogic/1 as okx
 
 // Signal Settings Group
 var signalGroup = "Signal Settings"
@@ -42,19 +43,7 @@ macdSlowLength = input.int(26, title="MACD Slow Length", minval=1, group=macdGro
 macdSignalLength = input.int(9, title="MACD Signal Length", minval=1, group=macdGroup)
 
 // Calculate Z-Score
-base_lookback = lookbackPeriod
-
-lookback = switch
-    timeframe.isseconds => base_lookback * math.round(240 / timeframe.multiplier)
-    timeframe.isminutes => base_lookback * math.round(240 / timeframe.multiplier)
-    timeframe.isdaily => base_lookback
-    timeframe.isweekly => math.round(base_lookback / 7)
-    timeframe.ismonthly => math.round(base_lookback / 30)
-    => base_lookback  // default case
-
-mean = ta.sma(close, lookback)
-stdDev = ta.stdev(close, lookback)
-zScore = (close - mean) / stdDev
+zScore = ZScore.getZScore(close, lookbackPeriod)
 
 // Calculate Indicators
 ma = ta.sma(close, indicatorLength)

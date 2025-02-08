@@ -75,20 +75,14 @@ if useMACD
 if buySignal
     orderId = "Buy " + syminfo.ticker
     entryMsg = okx.generateManualMessage(action="ENTER_LONG", signalToken=signalToken, amount=positionSize, orderType="market")
-    exitMsg = okx.generateManualMessage(action="EXIT_LONG", signalToken=signalToken, amount=positionSize, orderType="limit", priceOffset=takeProfitPercent)
+    exitMsg = okx.generateManualMessage(action="EXIT_LONG", signalToken=signalToken, amount=100, investmentType='percentage_position', orderType="limit", priceOffset=takeProfitPercent)
     strategy.entry(orderId, strategy.long, alert_message=entryMsg)
     strategy.exit("Take Profit/Stop Loss", orderId, limit=close * (1 + takeProfitPercent / 100), stop=close * (1 - stopLossPercent / 100), alert_message=exitMsg)
 
 if sellSignal
     orderId = "Sell " + syminfo.ticker
     entryMsg = okx.generateManualMessage(action="ENTER_SHORT", signalToken=signalToken, amount=positionSize)
-    exitMsg = okx.generateManualMessage(action="EXIT_SHORT", signalToken=signalToken, amount=positionSize, orderType="limit", priceOffset=-takeProfitPercent)
+    exitMsg = okx.generateManualMessage(action="EXIT_SHORT", signalToken=signalToken, amount=100, investmentType='percentage_position', orderType="limit", priceOffset=takeProfitPercent)
     strategy.entry(orderId, strategy.short, alert_message=entryMsg)
     strategy.exit("Take Profit/Stop Loss", orderId, limit=close * (1 - takeProfitPercent / 100), stop=close * (1 + stopLossPercent / 100), alert_message=exitMsg)
 
-// Plotting
-plot(zScore, title="Z-Score", color=color.blue)
-hline(zScoreThreshold, "Z-Score Threshold", color=color.red)
-hline(-zScoreThreshold, "Negative Z-Score Threshold", color=color.green)
-plot(ma, title="Moving Average", color=color.orange)
-plot(ema, title="Exponential Moving Average", color=color.purple)

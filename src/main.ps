@@ -1,8 +1,8 @@
 // This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
-// © nichu211
+// © Nichijou
 
 //@version=6
-strategy("ZSCore Trading Strategy", overlay=false, initial_capital=1000, default_qty_value = 10, default_qty_type = strategy.cash, fill_orders_on_standard_ohlc = true)
+strategy("ZSCore Trading Strategy", overlay=false, initial_capital=1000, default_qty_value = 2, default_qty_type = strategy.percent_of_equity, fill_orders_on_standard_ohlc = true)
 
 import nichu211/ZScore/1 as ZScore
 import nichu211/OKXSignalLogic/1 as okx
@@ -14,12 +14,13 @@ signalToken = input.string("YOUR_DEFAULT_TOKEN", title="Signal Token", group=sig
 // Capital & Risk Management Group
 var capitalGroup = "Capital & Risk Management"
 initialCapital = input.float(1000, title="Initial Capital", group=capitalGroup)
-positionSize = input.float(100.0, title="Position Size (%)", minval=0.1, maxval=100, group=capitalGroup)
+positionSize = input.float(2.0, title="Position Size (%)", minval=0.01, maxval=100, group=capitalGroup)
 stopLossPercent = input.float(2, title="Stop Loss (%)", group=capitalGroup)
 takeProfitPercent = input.float(5, title="Take Profit (%)", group=capitalGroup)
 
 // Indicator Selection Group
 var indicatorGroup = "Indicator Selection"
+useZSCoreCross = input.bool(false, title = 'Use Z-Score Threshold Cross', group=indicatorGroup)
 useMA = input.bool(true, title="Use Moving Average", group=indicatorGroup)
 useEMA = input.bool(true, title="Use Exponential Moving Average", group=indicatorGroup)
 useRSI = input.bool(false, title="Use RSI", group=indicatorGroup)
@@ -30,6 +31,7 @@ var strategyGroup = "Strategy Parameters"
 lookbackPeriod = input.int(20, title="Lookback Period", minval=1, tooltip="Number of bars used for calculations", group=strategyGroup)
 indicatorLength = input.int(14, title="Indicator Length", minval=1, tooltip="Length for MA, EMA, and RSI calculations", group=strategyGroup)
 zScoreThreshold = input.float(1.5, title="Z-Score Threshold", group=strategyGroup)
+positionMultiEntry = input.int(2, title='Position Mutil Entry', group=strategyGroup)
 
 // RSI Settings Group
 var rsiGroup = "RSI Settings"
@@ -43,25 +45,30 @@ macdSlowLength = input.int(26, title="MACD Slow Length", minval=1, group=macdGro
 macdSignalLength = input.int(9, title="MACD Signal Length", minval=1, group=macdGroup)
 
 // Calculate Z-Score
-zScore = ZScore.getZScore(close, lookbackPeriod)
+price = request.security(syminfo.tickerid, timeframe.period, close)
+zScore = ZScore.getZScore(price, lookbackPeriod)
 
 // Calculate Indicators
-ma = ta.sma(close, indicatorLength)
-ema = ta.ema(close, indicatorLength)
-rsi = ta.rsi(close, indicatorLength)
-[macdLine, signalLine, _] = ta.macd(close, macdFastLength, macdSlowLength, macdSignalLength)
+ma = ta.sma(price, indicatorLength)
+ema = ta.ema(price, indicatorLength)
+rsi = ta.rsi(price, indicatorLength)
+[macdLine, signalLine, _] = ta.macd(price, macdFastLength, macdSlowLength, macdSignalLength)
 
 // Trading Logic
 buySignal = zScore > zScoreThreshold
 sellSignal = zScore < -zScoreThreshold
 
+if useZSCoreCross
+    buySignal := ta.crossover(zScore, zScoreThreshold)
+    sellSignal := ta.crossunder(zScore, -zScoreThreshold)
+
 if useMA
-    buySignal := buySignal and close > ma
-    sellSignal := sellSignal and close < ma
+    buySignal := buySignal and price > ma
+    sellSignal := sellSignal and price < ma
 
 if useEMA
-    buySignal := buySignal and close > ema
-    sellSignal := sellSignal and close < ema
+    buySignal := buySignal and price > ema
+    sellSignal := sellSignal and price < ema
 
 if useRSI
     buySignal := buySignal and rsi < rsiOversold
@@ -71,18 +78,62 @@ if useMACD
     buySignal := buySignal and macdLine > signalLine
     sellSignal := sellSignal and macdLine < signalLine
 
-// Execute Trades
-if buySignal
-    orderId = "Buy " + syminfo.ticker
-    entryMsg = okx.generateManualMessage(action="ENTER_LONG", signalToken=signalToken, amount=positionSize, orderType="market")
-    exitMsg = okx.generateManualMessage(action="EXIT_LONG", signalToken=signalToken, amount=100, investmentType='percentage_position', orderType="limit", priceOffset=takeProfitPercent)
-    strategy.entry(orderId, strategy.long, alert_message=entryMsg)
-    strategy.exit("Take Profit/Stop Loss", orderId, limit=close * (1 + takeProfitPercent / 100), stop=close * (1 - stopLossPercent / 100), alert_message=exitMsg)
 
-if sellSignal
-    orderId = "Sell " + syminfo.ticker
-    entryMsg = okx.generateManualMessage(action="ENTER_SHORT", signalToken=signalToken, amount=positionSize)
-    exitMsg = okx.generateManualMessage(action="EXIT_SHORT", signalToken=signalToken, amount=100, investmentType='percentage_position', orderType="limit", priceOffset=takeProfitPercent)
-    strategy.entry(orderId, strategy.short, alert_message=entryMsg)
-    strategy.exit("Take Profit/Stop Loss", orderId, limit=close * (1 - takeProfitPercent / 100), stop=close * (1 + stopLossPercent / 100), alert_message=exitMsg)
+// Execute Trades
+type Trade
+    float position_size = 0
+    float position_multi = 0
+    float amount = 0
+    float entry = na
+    float ttp = na
+    float tp = na
+    float lp = na
+    string entry_msg
+    string exit_msg
+
+var initial_capital = 1000
+var margin_capital = initial_capital
+var trade = Trade.new(strategy.position_size)
+
+if trade.position_size == 0
+    if buySignal
+        orderId = "ENTER_LONG " + syminfo.ticker
+        trade.position_size := positionSize * price
+        trade.amount := positionSize * price
+        trade.entry := price
+        trade.tp := price * (1 + takeProfitPercent / 100)
+        trade.lp := price * (1 - stopLossPercent / 100)
+        trade.entry_msg := okx.getEntryAlertMsg(action="ENTER_LONG", signalToken=signalToken, amount=positionSize)
+        trade.exit_msg := okx.getExitAlertMsg(action="EXIT_LONG", signalToken=signalToken, amount=100)
+        strategy.entry(orderId, strategy.long, alert_message=trade.entry_msg)
+        strategy.exit("Take Profit/Stop Loss", orderId, limit=trade.tp, stop=trade.lp, alert_message=trade.exit_msg)
+        alert(trade.entry_msg)
+
+    if sellSignal
+        orderId = "ENTER_SHORT " + syminfo.ticker
+        trade.position_size := -positionSize * price
+        trade.amount := -positionSize * price
+        trade.tp := price * (1 - takeProfitPercent / 100)
+        trade.lp := price * (1 + stopLossPercent / 100)
+        trade.entry_msg := okx.getEntryAlertMsg(action="ENTER_SHORT", signalToken=signalToken, amount=positionSize)
+        trade.exit_msg := okx.getExitAlertMsg(action="EXIT_SHORT", signalToken=signalToken, amount=100)
+        strategy.entry(orderId, strategy.short, alert_message=trade.entry_msg)
+        strategy.exit("Take Profit/Stop Loss", orderId, limit=trade.tp, stop=trade.lp, alert_message=trade.exit_msg)
+        alert(trade.entry_msg)
+
+if trade.position_size > 0 and buySignal and trade.position_multi < positionMultiEntry and trade.lp > price
+    orderId = "ENTER_LONG " + syminfo.ticker
+
+// exit long or take profit
+if trade.position_size > 0 and (trade.tp < price or trade.lp > price)
+    log.info(trade.exit_msg)
+    alert(trade.exit_msg)
+    trade := Trade.new(0)
+
+// exit short or take profit
+if trade.position_size < 0 and (trade.tp > price or trade.lp < price)
+    log.info(trade.exit_msg)
+    alert(trade.exit_msg)
+    trade := Trade.new(0)
+        
 

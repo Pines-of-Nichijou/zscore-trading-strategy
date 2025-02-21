@@ -25,12 +25,28 @@ This document outlines the requirements for a Pine Script strategy to be used in
   - Z-score threshold crossing
   - Technical indicator confirmations
   - Combined signal validation
+  - Martingale strategy implementation
+    - Multiple entry positions with increasing size
+    - Dynamic position size scaling using martingale multiplier
+    - Maximum position count limit
+    - Dynamic take-profit and stop-loss adjustments
+      - Take-profit levels increase with each additional position
+      - Stop-loss levels adjust to protect accumulated positions
+      - Based on weighted average entry price
 
 - **Risk Management**
-  - Configurable stop-loss levels
-  - Take-profit targets
-  - Position size controls
-  - Initial capital management
+  - Enhanced Stop Loss Management
+    - Option to move stop loss to entry price after additional positions
+    - Percentage inputs normalized (0-100%) for better usability
+    - Dynamic stop-loss adjustment based on average entry
+  - Dynamic Take Profit Management
+    - Percentage inputs normalized (0-100%)
+    - Increased targets for subsequent positions
+    - Based on weighted average entry price
+  - Martingale Strategy Improvements
+    - Automatic position size scaling
+    - Break-even stop loss option
+    - Dynamic risk adjustment per position
 
 ### 3.2 Signal Generation
 - **Alert Message Structure**
@@ -65,8 +81,17 @@ This document outlines the requirements for a Pine Script strategy to be used in
 - Lookback period
 - Indicator lengths
 - Z-score threshold
-- Stop-loss percentage
-- Take-profit percentage
+- Risk Management Parameters
+  - Stop Loss (0.1-100%)
+  - Take Profit (0.1-100%)
+  - Move Stop to Entry option
+    - Automatically moves stop loss to break even after additional positions
+    - Protects accumulated profits
+    - Optional feature that can be enabled/disabled
+  - Normalized percentage inputs
+    - All percentage inputs use 0-100 range
+    - Values automatically converted to decimals for calculations
+    - More intuitive user interface
 
 ### 4.2 Signal Parameters
 - Signal token input

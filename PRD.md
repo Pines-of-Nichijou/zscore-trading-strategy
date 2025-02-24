@@ -18,6 +18,13 @@ This document outlines the requirements for a Pine Script strategy to be used in
 - Configurable position sizing
 - Token-based authentication
 
+### 2.3 Capital & Risk Management
+- Initial capital configuration
+- Position size percentage control
+- Stop loss and take profit management
+- Martingale strategy implementation
+- Dynamic position sizing
+
 ## 3. Features
 
 ### 3.1 Trading Logic
@@ -47,6 +54,23 @@ This document outlines the requirements for a Pine Script strategy to be used in
     - Automatic position size scaling
     - Break-even stop loss option
     - Dynamic risk adjustment per position
+
+- **Indicator Selection**
+  - Z-Score Threshold Cross (optional)
+  - Moving Average (optional)
+  - Exponential Moving Average (optional)
+  - RSI (optional)
+  - MACD (optional)
+  - Configurable indicator combinations
+
+- **Martingale Strategy Details**
+  - Position Multi Entry limit
+  - Martingale Multiplier for position scaling
+  - Entry Distance percentage requirement
+  - Dynamic TP/SL adjustments
+    - TP Multiplier for increased targets
+    - SL Multiplier for risk adjustment
+    - Move Stop To Entry Profit threshold
 
 ### 3.2 Signal Generation
 - **Alert Message Structure**
@@ -93,11 +117,30 @@ This document outlines the requirements for a Pine Script strategy to be used in
     - Values automatically converted to decimals for calculations
     - More intuitive user interface
 
+- Martingale Configuration
+  - Position Multi Entry (min: 1)
+  - Martingale Multiplier (min: 1.0)
+  - Entry Distance (0.1-100%)
+  - Move Stop To Entry Profit (0.1-100%)
+  - Dynamic TP Multiplier (min: 1.0)
+  - Dynamic SL Multiplier (0.1-1.0)
+
 ### 4.2 Signal Parameters
 - Signal token input
 - Position size (0.1-100%)
 - Order type settings
 - Investment type configuration
+
+### 4.3 Indicator Parameters
+- RSI Settings
+  - Overbought level (0-100)
+  - Oversold level (0-100)
+- MACD Settings
+  - Fast Length
+  - Slow Length
+  - Signal Length
+- Indicator Length for MA/EMA calculations
+- Z-Score lookback period
 
 ## 5. Technical Requirements
 
@@ -152,3 +195,18 @@ This document outlines the requirements for a Pine Script strategy to be used in
 - Bug fixes and improvements
 - Documentation updates
 - User support guidelines
+
+## 10. Trade Management
+
+### 10.1 Position Tracking
+- Custom Trade type implementation
+- Position size tracking
+- Entry price management
+- Take profit and stop loss price updates
+- Multi-position handling
+
+### 10.2 Alert Messages
+- Entry alert message generation
+- Exit alert message generation
+- Integration with OKX signal system
+- Maximum lag configuration

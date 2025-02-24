@@ -2,7 +2,7 @@
 // © Nichijou
 
 //@version=6
-strategy("ZSCore Trading Strategy", overlay=false, initial_capital=1000, default_qty_value = 2, default_qty_type = strategy.percent_of_equity, commission_value = 0.05, fill_orders_on_standard_ohlc = true)
+strategy("ZSCore Trading Strategy", overlay=false, initial_capital=1000, default_qty_type=strategy.cash, currency = currency.USDT, default_qty_value = 2, commission_value = 0.05, fill_orders_on_standard_ohlc = true)
 
 import nichu211/ZScore/1 as ZScore
 import nichu211/OKXSignalLogic/1 as okx
@@ -14,7 +14,7 @@ signalToken = input.string("YOUR_DEFAULT_TOKEN", title="Signal Token", group=sig
 // Capital & Risk Management Group
 var capitalGroup = "Capital & Risk Management"
 initialCapital = input.float(1000, title="Initial Capital", group=capitalGroup)
-positionSize = input.float(2.0, title="Position Size (%)", minval=0.01, maxval=100, group=capitalGroup)
+positionSize = input.float(2.0, title="Position Size (%)", minval=0.01, maxval=100, group=capitalGroup) / 100
 stopLossPercent = input.float(6, title="Stop Loss (%)", minval=0.1, maxval=100, group=capitalGroup) / 100
 takeProfitPercent = input.float(5, title="Take Profit (%)", minval=0.1, maxval=100, group=capitalGroup) / 100
 moveStopToEntry = input.bool(false, title="Move Stop Loss to Entry", group=capitalGroup)
@@ -105,26 +105,30 @@ var longOrderId = "ENTER_LONG " + syminfo.ticker
 var shortOrderId = "ENTER_SHORT " + syminfo.ticker
 
 if trade.position_size == 0
+    positionValue = initial_capital * positionSize
+    contractQty = positionValue / price
+
     if buySignal
-        trade.position_size := positionSize * price
-        trade.amount := positionSize * price
+        trade.position_size := contractQty
+        trade.amount := positionValue
         trade.entry := price
         trade.tp := price * (1 + takeProfitPercent)
         trade.lp := price * (1 - stopLossPercent)
         trade.entry_msg := okx.getEntryAlertMsg(action="ENTER_LONG", signalToken=signalToken, amount=positionSize, maxLag=100)
         trade.exit_msg := okx.getExitAlertMsg(action="EXIT_LONG", signalToken=signalToken, amount=100, maxLag=100)
-        strategy.entry(longOrderId, strategy.long, alert_message=trade.entry_msg)
+        strategy.entry(longOrderId, strategy.long, qty=contractQty, alert_message=trade.entry_msg)
         strategy.exit("Take Profit/Stop Loss", longOrderId, limit=trade.tp, stop=trade.lp, alert_message=trade.exit_msg)
         alert(trade.entry_msg)
 
     if sellSignal
-        trade.position_size := -positionSize * price
-        trade.amount := -positionSize * price
+        trade.position_size := -contractQty
+        trade.amount := -positionValue
+        trade.entry := price
         trade.tp := price * (1 - takeProfitPercent)
         trade.lp := price * (1 + stopLossPercent)
         trade.entry_msg := okx.getEntryAlertMsg(action="ENTER_SHORT", signalToken=signalToken, amount=positionSize, maxLag=100)
         trade.exit_msg := okx.getExitAlertMsg(action="EXIT_SHORT", signalToken=signalToken, amount=100, maxLag=100)
-        strategy.entry(shortOrderId, strategy.short, alert_message=trade.entry_msg)
+        strategy.entry(shortOrderId, strategy.short, qty=contractQty, alert_message=trade.entry_msg)
         strategy.exit("Take Profit/Stop Loss", shortOrderId, limit=trade.tp, stop=trade.lp, alert_message=trade.exit_msg)
         alert(trade.entry_msg)
 
@@ -135,9 +139,12 @@ if trade.position_size > 0 and buySignal and trade.position_multi < positionMult
     // Only enter if price has dropped by martingaleEntryPercent
     if priceDistance >= martingaleEntryPercent
         trade.position_multi += 1
-        newPositionSize = positionSize * math.pow(martingaleMultiplier, trade.position_multi - 1)
-        trade.position_size += newPositionSize * price
-        trade.amount += newPositionSize * price
+        newPositionSize = positionSize * math.pow(martingaleMultiplier, trade.position_multi)
+        positionValue = initial_capital * newPositionSize
+        contractQty = positionValue / price
+
+        trade.position_size += contractQty
+        trade.amount += positionValue
         trade.entry := price
         // Adjust TP and SL based on average entry
         avgEntry = trade.amount / trade.position_size
@@ -152,7 +159,7 @@ if trade.position_size > 0 and buySignal and trade.position_multi < positionMult
             
         trade.entry_msg := okx.getEntryAlertMsg(action="ENTER_LONG", signalToken=signalToken, amount=newPositionSize, maxLag=100)
         trade.exit_msg := okx.getExitAlertMsg(action="EXIT_LONG", signalToken=signalToken, amount=100, maxLag=100)
-        strategy.entry(longOrderId, strategy.long, alert_message=trade.entry_msg)
+        strategy.entry(longOrderId, strategy.long, qty=contractQty, alert_message=trade.entry_msg)
         strategy.exit("Take Profit/Stop Loss", longOrderId, limit=trade.tp, stop=trade.lp, alert_message=trade.exit_msg)
         alert(trade.entry_msg)
 
@@ -163,9 +170,12 @@ if trade.position_size < 0 and sellSignal and trade.position_multi < positionMul
     // Only enter if price has risen by martingaleEntryPercent
     if priceDistance >= martingaleEntryPercent
         trade.position_multi += 1
-        newPositionSize = positionSize * math.pow(martingaleMultiplier, trade.position_multi - 1)
-        trade.position_size -= newPositionSize * price
-        trade.amount -= newPositionSize * price
+        newPositionSize = positionSize * math.pow(martingaleMultiplier, trade.position_multi)
+        positionValue = initial_capital * newPositionSize
+        contractQty = positionValue / price
+
+        trade.position_size -= contractQty
+        trade.amount -= positionValue
         trade.entry := price
         // Adjust TP and SL based on average entry
         avgEntry = trade.amount / trade.position_size
@@ -180,7 +190,7 @@ if trade.position_size < 0 and sellSignal and trade.position_multi < positionMul
             
         trade.entry_msg := okx.getEntryAlertMsg(action="ENTER_SHORT", signalToken=signalToken, amount=newPositionSize, maxLag=100)
         trade.exit_msg := okx.getExitAlertMsg(action="EXIT_SHORT", signalToken=signalToken, amount=100, maxLag=100)
-        strategy.entry(shortOrderId, strategy.short, alert_message=trade.entry_msg)
+        strategy.entry(shortOrderId, strategy.short, qty=contractQty, alert_message=trade.entry_msg)
         strategy.exit("Take Profit/Stop Loss", shortOrderId, limit=trade.tp, stop=trade.lp, alert_message=trade.exit_msg)
         alert(trade.entry_msg)
 
@@ -193,5 +203,3 @@ if trade.position_size > 0 and (trade.tp < price or trade.lp > price)
 if trade.position_size < 0 and (trade.tp > price or trade.lp < price)
     alert(trade.exit_msg)
     trade := Trade.new(0)
-        
-

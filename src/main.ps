@@ -4,8 +4,8 @@
 //@version=6
 strategy("ZSCore Trading Strategy", overlay=false, initial_capital=1000, default_qty_type=strategy.cash, currency = currency.USDT, default_qty_value = 2, commission_value = 0.05, fill_orders_on_standard_ohlc = true)
 
-import nichu211/ZScore/1 as ZScore
-import nichu211/OKXSignalLogic/1 as okx
+import Nichijou211/ZScore/1 as ZScore
+import Nichijou211/OKXSignalLogic/1 as okx
 
 // Signal Settings Group
 var signalGroup = "Signal Settings"
@@ -107,6 +107,7 @@ var shortOrderId = "ENTER_SHORT " + syminfo.ticker
 if trade.position_size == 0
     positionValue = initial_capital * positionSize
     contractQty = positionValue / price
+    log.info('[trade] {0} {1}', str.tostring(contractQty), positionValue)
 
     if buySignal
         trade.position_size := contractQty
@@ -149,6 +150,7 @@ if trade.position_size > 0 and buySignal and trade.position_multi < positionMult
         // Adjust TP and SL based on average entry
         avgEntry = trade.amount / trade.position_size
         trade.tp := avgEntry * (1 + takeProfitPercent * dynamicTPMultiplier)
+        log.info('[avgEntry] {0} {1} [price] {2}', str.tostring(avgEntry), str.tostring(contractQty), str.tostring(price))
         
         // Only move stop to entry if current profit exceeds moveStopToEntryPercent
         currentProfit = (price - avgEntry) / avgEntry

@@ -1,0 +1,179 @@
+/// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Nichijou
+
+//@version=6
+indicator("Memecoin Tracker", overlay = false)
+
+import nichu211/ZScore/1 as ZScore
+
+// Part 1: Data Fetching and Calculation
+input_lookback = input(14, title="Lookback", group="Z-Score")
+upper_threshold = input(2.5, title="Upper Z-Score Threshold")
+lower_threshold = input(-2.5, title="Lower Z-Score Threshold")
+
+// Define a list of coin symbols
+var meme_symbols = array.from('OKX:DOGEUSDT.P', 'BINANCE:SHIBUSDT', 'BINANCE:PEPEUSDT', 'BINANCE:WIFUSDT', 'MEXC:BABYDOGEUSDT', 'BINANCE:FLOKIUSDT', 'MEXC:POPCATUSDT', 'BYBIT:BRETTUSDT', 'BYBIT:BONKUSDT', 'BINANCE:NEIROUSDT', 'BITGET:MOGUSDT', 'BYBIT:MEWUSDT', 'UNISWAP:SPXWETH_52C77B.USD', 'OKX:TURBOUSDT', 'MEXC:GIGAUSDT', 'BINANCE:BOMEUSDT', 'MEXC:DADDYUSDT', 'MEXC:PORKUSDT', 'MEXC:MOTHERUSDT', 'MEXC:BOBOUSDT', 'MEXC:MAGAUSDT', 'BINANCE:DOGSUSDT', 'MEXC:APUUSDT', 'MEXC:OSAKUSDT', 'BINANCE:MEMEUSDT', 'MEXC:NPCUSDT', 'MEXC:SUNDOGUSDT', 'MEXC:CATUSDT', 'MEXC:PONKEUSDT', 'MEXC:MICHIUSDT')
+
+// Part 2:  Plot View
+method getPrice(string symb) =>
+    request.security(symb, timeframe.period, close)
+
+method getZScore(float price) =>
+    ZScore.getZScore(price, input_lookback)
+
+method getColor(float zscore, color smybColor = na) =>
+    zscore > upper_threshold ? color.red : zscore < lower_threshold ? color.green : smybColor
+
+doge = getPrice(array.get(meme_symbols, 0))
+doge_z = getZScore(doge)
+doge_color = getColor(doge_z, #FF5733)
+plot(doge_z, title="DOGE Z-Score", color=doge_color, linewidth=1)
+
+shib = getPrice(array.get(meme_symbols, 1))
+shib_z = getZScore(shib)
+shib_color = getColor(shib_z, #33FF57)
+plot(shib_z, title="SHIB Z-Score", color=shib_color, linewidth=1)
+
+pepe = getPrice(array.get(meme_symbols, 2))
+pepe_z = getZScore(pepe)
+pepe_color = getColor(pepe_z, #3357FF)
+plot(pepe_z, title="PEPE Z-Score", color=pepe_color, linewidth=1)
+
+dogwifhat = getPrice(array.get(meme_symbols, 3))
+dogwifhat_z = getZScore(dogwifhat)
+dogwifhat_color = getColor(dogwifhat_z, #FF33F1)
+plot(dogwifhat_z, title="WIF Z-Score", color=dogwifhat_color, linewidth=1)
+
+babydoge = getPrice(array.get(meme_symbols, 4))
+babydoge_z = getZScore(babydoge)
+babydoge_color = getColor(babydoge_z, #33FFF1)
+plot(babydoge_z, title="BABYDOGE Z-Score", color=babydoge_color, linewidth=1)
+
+floki = getPrice(array.get(meme_symbols, 5))
+floki_z = getZScore(floki)
+floki_color = getColor(floki_z, #F1FF33)
+plot(floki_z, title="FLOKI Z-Score", color=floki_color, linewidth=1)
+
+popcat = getPrice(array.get(meme_symbols, 6))
+popcat_z = getZScore(popcat)
+popcat_color = getColor(popcat_z, #33FFA8)
+plot(popcat_z, title="POPCAT Z-Score", color=popcat_color, linewidth=1)
+
+brett = getPrice(array.get(meme_symbols, 7))
+brett_z = getZScore(brett)
+brett_color = getColor(brett_z, #A833FF)
+plot(brett_z, title="BRETT Z-Score", color=brett_color, linewidth=1)
+
+bonk = getPrice(array.get(meme_symbols, 8))
+bonk_z = getZScore(bonk)
+bonk_color = getColor(bonk_z, #FF8033)
+plot(bonk_z, title="BONK Z-Score", color=bonk_color, linewidth=1)
+
+neiro = getPrice(array.get(meme_symbols, 9))
+neiro_z = getZScore(neiro)
+neiro_color = getColor(neiro_z, #33FFFF)
+plot(neiro_z, title="NEIRO Z-Score", color=neiro_color, linewidth=1)
+
+mog = getPrice(array.get(meme_symbols, 10))
+mog_z = getZScore(mog)
+mog_color = getColor(mog_z, #FF33A8)
+plot(mog_z, title="MOG Z-Score", color=mog_color, linewidth=1)
+
+mew = getPrice(array.get(meme_symbols, 11))
+mew_z = getZScore(mew)
+mew_color = getColor(mew_z, #80FF33)
+plot(mew_z, title="MEW Z-Score", color=mew_color, linewidth=1)
+
+spx = getPrice(array.get(meme_symbols, 12))
+spx_z = getZScore(spx)
+spx_color = getColor(spx_z, #3380FF)
+plot(spx_z, title="SPX Z-Score", color=spx_color, linewidth=1)
+
+turbo = getPrice(array.get(meme_symbols, 13))
+turbo_z = getZScore(turbo)
+turbo_color = getColor(turbo_z, #FF3380)
+plot(turbo_z, title="TURBO Z-Score", color=turbo_color, linewidth=1)
+
+giga = getPrice(array.get(meme_symbols, 14))
+giga_z = getZScore(giga)
+giga_color = getColor(giga_z, #33FF80)
+plot(giga_z, title="GIGA Z-Score", color=giga_color, linewidth=1)
+
+bome = getPrice(array.get(meme_symbols, 15))
+bome_z = getZScore(bome)
+bome_color = getColor(bome_z, #8033FF)
+plot(bome_z, title="BOME Z-Score", color=bome_color, linewidth=1)
+
+daddy = getPrice(array.get(meme_symbols, 16))
+daddy_z = getZScore(daddy)
+daddy_color = getColor(daddy_z, #FF8080)
+plot(daddy_z, title="DADDY Z-Score", color=daddy_color, linewidth=1)
+
+pork = getPrice(array.get(meme_symbols, 17))
+pork_z = getZScore(pork)
+pork_color = getColor(pork_z, #80FF80)
+plot(pork_z, title="PORK Z-Score", color=pork_color, linewidth=1)
+
+mother = getPrice(array.get(meme_symbols, 18))
+mother_z = getZScore(mother)
+mother_color = getColor(mother_z, #8080FF)
+plot(mother_z, title="MOTHER Z-Score", color=mother_color, linewidth=1)
+
+bobo = getPrice(array.get(meme_symbols, 19))
+bobo_z = getZScore(bobo)
+bobo_color = getColor(bobo_z, #FF80FF)
+plot(bobo_z, title="BOBO Z-Score", color=bobo_color, linewidth=1)
+
+maga = getPrice(array.get(meme_symbols, 20))
+maga_z = getZScore(maga)
+maga_color = getColor(maga_z, #80FFFF)
+plot(maga_z, title="MAGA Z-Score", color=maga_color, linewidth=1)
+
+dogs = getPrice(array.get(meme_symbols, 21))
+dogs_z = getZScore(dogs)
+dogs_color = getColor(dogs_z, #FFA833)
+plot(dogs_z, title="DOGS Z-Score", color=dogs_color, linewidth=1)
+
+apu = getPrice(array.get(meme_symbols, 22))
+apu_z = getZScore(apu)
+apu_color = getColor(apu_z, #33FFA8)
+plot(apu_z, title="APU Z-Score", color=apu_color, linewidth=1)
+
+osak = getPrice(array.get(meme_symbols, 23))
+osak_z = getZScore(osak)
+osak_color = getColor(osak_z, #A833FF)
+plot(osak_z, title="OSAK Z-Score", color=osak_color, linewidth=1)
+
+meme = getPrice(array.get(meme_symbols, 24))
+meme_z = getZScore(meme)
+meme_color = getColor(meme_z, #FF33A8)
+plot(meme_z, title="MEME Z-Score", color=meme_color, linewidth=1)
+
+npc = getPrice(array.get(meme_symbols, 25))
+npc_z = getZScore(npc)
+npc_color = getColor(npc_z, #33A8FF)
+plot(npc_z, title="NPC Z-Score", color=npc_color, linewidth=1)
+
+sundog = getPrice(array.get(meme_symbols, 26))
+sundog_z = getZScore(sundog)
+sundog_color = getColor(sundog_z, #A8FF33)
+plot(sundog_z, title="SUNDOG Z-Score", color=sundog_color, linewidth=1)
+
+cat = getPrice(array.get(meme_symbols, 27))
+cat_z = getZScore(cat)
+cat_color = getColor(cat_z, #FF33A8)
+plot(cat_z, title="CAT Z-Score", color=cat_color, linewidth=1)
+
+ponke = getPrice(array.get(meme_symbols, 28))
+ponke_z = getZScore(ponke)
+ponke_color = getColor(ponke_z, #FF33A8)
+plot(ponke_z, title="PONKE Z-Score", color=ponke_color, linewidth=1)
+
+michi = getPrice(array.get(meme_symbols, 29))
+michi_z = getZScore(michi)
+michi_color = getColor(michi_z, #33FFA8)
+plot(michi_z, title="MICHI Z-Score", color=michi_color, linewidth=1)
+
+// Plot threshold lines using hline for reference
+hline(upper_threshold, "Upper Threshold", color=color.green, linestyle=hline.style_dotted, linewidth=1)
+hline(lower_threshold, "Lower Threshold", color=color.red, linestyle=hline.style_dotted, linewidth=1)

@@ -119,7 +119,6 @@ if trade.position_size == 0
         trade.exit_msg := okx.getExitAlertMsg(action="EXIT_LONG", signalToken=signalToken, amount=100, maxLag=100)
         strategy.entry(longOrderId, strategy.long, qty=contractQty, alert_message=trade.entry_msg)
         strategy.exit("Take Profit/Stop Loss", longOrderId, limit=trade.tp, stop=trade.lp, alert_message=trade.exit_msg)
-        alert(trade.entry_msg)
 
     if sellSignal
         trade.position_size := -contractQty
@@ -131,7 +130,6 @@ if trade.position_size == 0
         trade.exit_msg := okx.getExitAlertMsg(action="EXIT_SHORT", signalToken=signalToken, amount=100, maxLag=100)
         strategy.entry(shortOrderId, strategy.short, qty=contractQty, alert_message=trade.entry_msg)
         strategy.exit("Take Profit/Stop Loss", shortOrderId, limit=trade.tp, stop=trade.lp, alert_message=trade.exit_msg)
-        alert(trade.entry_msg)
 
 if trade.position_size > 0 and buySignal and trade.position_multi < positionMultiEntry
     // Calculate price distance from entry
@@ -150,7 +148,6 @@ if trade.position_size > 0 and buySignal and trade.position_multi < positionMult
         // Adjust TP and SL based on average entry
         avgEntry = trade.amount / trade.position_size
         trade.tp := avgEntry * (1 + takeProfitPercent * dynamicTPMultiplier)
-        log.info('[avgEntry] {0} {1} [price] {2}', str.tostring(avgEntry), str.tostring(contractQty), str.tostring(price))
         
         // Only move stop to entry if current profit exceeds moveStopToEntryPercent
         currentProfit = (price - avgEntry) / avgEntry
@@ -163,7 +160,6 @@ if trade.position_size > 0 and buySignal and trade.position_multi < positionMult
         trade.exit_msg := okx.getExitAlertMsg(action="EXIT_LONG", signalToken=signalToken, amount=100, maxLag=100)
         strategy.entry(longOrderId, strategy.long, qty=contractQty, alert_message=trade.entry_msg)
         strategy.exit("Take Profit/Stop Loss", longOrderId, limit=trade.tp, stop=trade.lp, alert_message=trade.exit_msg)
-        alert(trade.entry_msg)
 
 if trade.position_size < 0 and sellSignal and trade.position_multi < positionMultiEntry
     // Calculate price distance from entry
@@ -194,14 +190,11 @@ if trade.position_size < 0 and sellSignal and trade.position_multi < positionMul
         trade.exit_msg := okx.getExitAlertMsg(action="EXIT_SHORT", signalToken=signalToken, amount=100, maxLag=100)
         strategy.entry(shortOrderId, strategy.short, qty=contractQty, alert_message=trade.entry_msg)
         strategy.exit("Take Profit/Stop Loss", shortOrderId, limit=trade.tp, stop=trade.lp, alert_message=trade.exit_msg)
-        alert(trade.entry_msg)
 
 // exit long or take profit
 if trade.position_size > 0 and (trade.tp < price or trade.lp > price)
-    alert(trade.exit_msg)
     trade := Trade.new(0)
 
 // exit short or take profit
 if trade.position_size < 0 and (trade.tp > price or trade.lp < price)
-    alert(trade.exit_msg)
     trade := Trade.new(0)
